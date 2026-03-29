@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MindBridge — AI Wellness Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --surface2: #16213e;
+      --accent: #7c3aed;
+      --accent2: #a855f7;
+      --teal: #06b6d4;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: rgba(255,255,255,0.08);
+      --radius: 16px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+
+    /* Header */
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10; backdrop-filter:blur(10px); }
+    .logo { display:flex; align-items:center; gap:0.75rem; font-size:1.3rem; font-weight:700; }
+    .logo-icon { width:36px; height:36px; background:linear-gradient(135deg,var(--accent),var(--teal)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+    .logo span { background:linear-gradient(135deg,var(--accent2),var(--teal)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    nav { display:flex; gap:0.5rem; }
+    nav button { background:transparent; border:1px solid var(--border); color:var(--text-muted); padding:0.4rem 1rem; border-radius:8px; cursor:pointer; font-size:0.85rem; transition:all 0.2s; }
+    nav button:hover, nav button.active { background:var(--accent); border-color:var(--accent); color:white; }
+
+    /* Layout */
+    .app { display:grid; grid-template-columns:280px 1fr; flex:1; overflow:hidden; height:calc(100vh - 65px); }
+
+    /* Sidebar */
+    .sidebar { background:var(--surface); border-right:1px solid var(--border); padding:1.5rem; overflow-y:auto; display:flex; flex-direction:column; gap:1.5rem; }
+    .mood-meter { background:var(--surface2); border-radius:var(--radius); padding:1.2rem; }
+    .mood-meter h3 { font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:1rem; }
+    .mood-emojis { display:grid; grid-template-columns:repeat(5,1fr); gap:0.5rem; }
+    .mood-btn { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:0.5rem; cursor:pointer; text-align:center; font-size:1.2rem; transition:all 0.2s; }
+    .mood-btn:hover { background:var(--accent); transform:scale(1.1); }
+    .mood-label { font-size:0.6rem; color:var(--text-muted); display:block; margin-top:2px; }
+
+    .history-panel h3 { font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:0.75rem; }
+    .history-item { background:var(--surface2); border-radius:8px; padding:0.6rem 0.8rem; margin-bottom:0.4rem; font-size:0.8rem; display:flex; align-items:center; gap:0.5rem; }
+    .history-mood-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+    .insights-btn { background:linear-gradient(135deg,var(--accent),var(--teal)); border:none; color:white; padding:0.75rem; border-radius:var(--radius); cursor:pointer; font-size:0.9rem; font-weight:600; width:100%; transition:opacity 0.2s; }
+    .insights-btn:hover { opacity:0.9; }
+
+    /* Main chat */
+    .main { display:flex; flex-direction:column; overflow:hidden; }
+    .tab-content { display:none; flex:1; overflow:hidden; flex-direction:column; }
+    .tab-content.active { display:flex; }
+
+    /* Chat tab */
+    .chat-messages { flex:1; overflow-y:auto; padding:1.5rem; display:flex; flex-direction:column; gap:1rem; }
+    .msg { max-width:75%; animation:fadeUp 0.3s ease; }
+    .msg.user { align-self:flex-end; }
+    .msg.bot { align-self:flex-start; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    .msg-bubble { padding:0.9rem 1.2rem; border-radius:16px; font-size:0.92rem; line-height:1.6; }
+    .msg.user .msg-bubble { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:white; border-bottom-right-radius:4px; }
+    .msg.bot .msg-bubble { background:var(--surface); border:1px solid var(--border); border-bottom-left-radius:4px; }
+
+    .mood-badge { display:inline-flex; align-items:center; gap:0.3rem; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:0.2rem 0.6rem; font-size:0.75rem; margin-top:0.5rem; }
+
+    .activities-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem; margin-top:0.75rem; }
+    .activity-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:0.75rem; }
+    .activity-card .emoji { font-size:1.4rem; }
+    .activity-card h4 { font-size:0.8rem; font-weight:600; margin:0.3rem 0 0.2rem; }
+    .activity-card p { font-size:0.72rem; color:var(--text-muted); }
+    .activity-card .duration { font-size:0.68rem; color:var(--teal); margin-top:0.3rem; }
+
+    .affirmation { background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(6,182,212,0.15)); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:0.75rem 1rem; margin-top:0.6rem; font-style:italic; font-size:0.85rem; color:var(--accent2); }
+    .journal-prompt { background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:10px; padding:0.6rem 1rem; margin-top:0.5rem; font-size:0.8rem; color:var(--green); }
+    .journal-prompt span { font-weight:600; }
+
+    .typing { display:flex; gap:4px; align-items:center; padding:0.8rem 1.2rem; background:var(--surface); border-radius:16px; border:1px solid var(--border); width:fit-content; }
+    .typing span { width:6px; height:6px; background:var(--text-muted); border-radius:50%; animation:bounce 1.2s infinite; }
+    .typing span:nth-child(2){animation-delay:0.2s}
+    .typing span:nth-child(3){animation-delay:0.4s}
+    @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+
+    .chat-input-area { padding:1rem 1.5rem; background:var(--surface); border-top:1px solid var(--border); display:flex; gap:0.75rem; }
+    .chat-input-area input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:0.75rem 1rem; color:var(--text); font-size:0.9rem; outline:none; transition:border-color 0.2s; font-family:inherit; }
+    .chat-input-area input:focus { border-color:var(--accent); }
+    .chat-input-area input::placeholder { color:var(--text-muted); }
+    .send-btn { background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; color:white; width:44px; height:44px; border-radius:12px; cursor:pointer; font-size:1.1rem; flex-shrink:0; transition:opacity 0.2s; }
+    .send-btn:hover { opacity:0.9; }
+
+    /* Journal tab */
+    .journal-area { flex:1; display:flex; flex-direction:column; padding:1.5rem; gap:1rem; overflow:hidden; }
+    .journal-area h2 { font-size:1.1rem; font-weight:600; }
+    .journal-area p { font-size:0.85rem; color:var(--text-muted); }
+    textarea { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.2rem; color:var(--text); font-size:0.92rem; line-height:1.7; resize:none; outline:none; font-family:inherit; transition:border-color 0.2s; min-height:200px; }
+    textarea:focus { border-color:var(--accent); }
+    .journal-submit { background:linear-gradient(135deg,var(--accent),var(--teal)); border:none; color:white; padding:0.8rem 2rem; border-radius:12px; cursor:pointer; font-size:0.95rem; font-weight:600; align-self:flex-start; transition:opacity 0.2s; }
+    .journal-submit:hover { opacity:0.9; }
+    .journal-result { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; overflow-y:auto; }
+    .tag { display:inline-block; background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.3); color:var(--accent2); border-radius:20px; padding:0.2rem 0.7rem; font-size:0.75rem; margin:0.2rem; }
+
+    /* Insights tab */
+    .insights-area { flex:1; padding:1.5rem; overflow-y:auto; }
+    .insights-area h2 { font-size:1.2rem; font-weight:600; margin-bottom:1.5rem; }
+    .wellbeing-card { background:linear-gradient(135deg,var(--surface),var(--surface2)); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; margin-bottom:1rem; text-align:center; }
+    .score-circle { width:100px; height:100px; border-radius:50%; background:conic-gradient(var(--accent) calc(var(--score)*1%),var(--surface2) 0); display:flex; align-items:center; justify-content:center; margin:1rem auto; font-size:1.5rem; font-weight:700; position:relative; }
+    .score-circle::before { content:''; position:absolute; width:75px; height:75px; background:var(--surface); border-radius:50%; }
+    .score-value { position:relative; z-index:1; }
+    .insight-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:0.75rem; }
+    .insight-card h4 { font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:0.5rem; }
+    .insight-card p { font-size:0.88rem; line-height:1.6; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+    /* Welcome message */
+    .welcome { text-align:center; padding:3rem 2rem; color:var(--text-muted); }
+    .welcome h2 { font-size:1.4rem; color:var(--text); margin-bottom:0.5rem; }
+    .welcome p { font-size:0.9rem; margin-bottom:1.5rem; }
+    .quick-prompts { display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; }
+    .quick-prompt { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:0.4rem 0.9rem; font-size:0.8rem; cursor:pointer; transition:all 0.2s; }
+    .quick-prompt:hover { background:var(--accent); border-color:var(--accent); color:white; }
+
+    .mood-color-happy { background:#f59e0b; }
+    .mood-color-sad { background:#6366f1; }
+    .mood-color-anxious { background:#ef4444; }
+    .mood-color-stressed { background:#f97316; }
+    .mood-color-calm { background:#10b981; }
+    .mood-color-neutral { background:#94a3b8; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <span>MindBridge</span>
+  </div>
+  <nav>
+    <button class="active" onclick="switchTab('chat',this)">💬 Talk</button>
+    <button onclick="switchTab('journal',this)">📓 Journal</button>
+    <button onclick="switchTab('insights',this)">📊 Insights</button>
+  </nav>
+</header>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="mood-meter">
+      <h3>How are you feeling?</h3>
+      <div class="mood-emojis">
+        <div class="mood-btn" onclick="quickMood('I am feeling happy today')">😊<span class="mood-label">Happy</span></div>
+        <div class="mood-btn" onclick="quickMood('I am feeling sad')">😔<span class="mood-label">Sad</span></div>
+        <div class="mood-btn" onclick="quickMood('I feel anxious and nervous')">😰<span class="mood-label">Anxious</span></div>
+        <div class="mood-btn" onclick="quickMood('I am feeling really stressed')">😤<span class="mood-label">Stressed</span></div>
+        <div class="mood-btn" onclick="quickMood('I feel calm and peaceful')">😌<span class="mood-label">Calm</span></div>
+        <div class="mood-btn" onclick="quickMood('I feel angry and frustrated')">😠<span class="mood-label">Angry</span></div>
+        <div class="mood-btn" onclick="quickMood('I feel overwhelmed with everything')">😵<span class="mood-label">Overwhelmed</span></div>
+        <div class="mood-btn" onclick="quickMood('I feel hopeful about the future')">🌟<span class="mood-label">Hopeful</span></div>
+        <div class="mood-btn" onclick="quickMood('I feel lonely')">🥺<span class="mood-label">Lonely</span></div>
+        <div class="mood-btn" onclick="quickMood('I feel confused about things')">🤔<span class="mood-label">Confused</span></div>
+      </div>
+    </div>
+
+    <div class="history-panel">
+      <h3>Recent Mood History</h3>
+      <div id="historyList">
+        <div style="font-size:0.8rem;color:var(--text-muted)">Your mood history will appear here.</div>
+      </div>
+    </div>
+
+    <button class="insights-btn" onclick="switchTab('insights', document.querySelector('nav button:nth-child(3)'))">
+      ✨ View Weekly Insights
+    </button>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- Chat Tab -->
+    <div id="tab-chat" class="tab-content active">
+      <div class="chat-messages" id="chatMessages">
+        <div class="welcome">
+          <h2>Hi, I'm MindBridge 🧠</h2>
+          <p>Your AI-powered mental wellness companion. Share how you're feeling — I'm here to listen, understand, and support you.</p>
+          <div class="quick-prompts">
+            <div class="quick-prompt" onclick="quickMood('I feel stressed about work')">😤 Work stress</div>
+            <div class="quick-prompt" onclick="quickMood('I am feeling really anxious lately')">😰 Feeling anxious</div>
+            <div class="quick-prompt" onclick="quickMood('I had a really good day today')">😊 Good day</div>
+            <div class="quick-prompt" onclick="quickMood('I feel like I have no motivation')">😔 Low motivation</div>
+            <div class="quick-prompt" onclick="quickMood('I am feeling overwhelmed with my tasks')">😵 Overwhelmed</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="Tell me how you're feeling..." onkeypress="if(event.key==='Enter')sendMessage()"/>
+        <button class="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+    <!-- Journal Tab -->
+    <div id="tab-journal" class="tab-content">
+      <div class="journal-area">
+        <div>
+          <h2>📓 Journal Entry</h2>
+          <p>Write freely. The AI will analyze your emotions, highlight your strengths, and suggest next steps.</p>
+        </div>
+        <textarea id="journalInput" placeholder="Write about your day, your thoughts, your feelings... There is no right or wrong here. This is your safe space."></textarea>
+        <button class="journal-submit" onclick="analyzeJournal()">🔍 Analyze My Entry</button>
+        <div id="journalResult" style="display:none" class="journal-result"></div>
+      </div>
+    </div>
+
+    <!-- Insights Tab -->
+    <div id="tab-insights" class="tab-content">
+      <div class="insights-area">
+        <h2>📊 Your Wellness Insights</h2>
+        <div id="insightsContent">
+          <div style="text-align:center;color:var(--text-muted);padding:3rem">
+            <div style="font-size:3rem;margin-bottom:1rem">📈</div>
+            <p>Chat a few times to unlock your personalized insights!</p>
+            <button class="insights-btn" style="width:auto;padding:0.6rem 1.5rem;margin-top:1rem" onclick="loadInsights()">Load Insights</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const SESSION_ID = 'user_' + Math.random().toString(36).substr(2, 9);
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'insights') loadInsights();
+}
+
+function quickMood(text) {
+  document.getElementById('chatInput').value = text;
+  switchTab('chat', document.querySelector('nav button'));
+  sendMessage();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  appendMessage('user', msg);
+  showTyping();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: msg, session_id: SESSION_ID })
+    });
+    const data = await res.json();
+    removeTyping();
+    renderBotResponse(data);
+    updateHistory(data);
+  } catch (e) {
+    removeTyping();
+    appendMessage('bot', '<div class="msg-bubble">Sorry, something went wrong. Please try again. 💙</div>');
+  }
+}
+
+function appendMessage(role, content) {
+  const msgs = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if (typeof content === 'string' && !content.includes('<')) {
+    div.innerHTML = `<div class="msg-bubble">${content}</div>`;
+  } else {
+    div.innerHTML = content;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg bot'; div.id = 'typing';
+  div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+const moodEmojis = { happy:'😊', sad:'😔', anxious:'😰', stressed:'😤', calm:'😌', angry:'😠', overwhelmed:'😵', hopeful:'🌟', lonely:'🥺', confused:'🤔', neutral:'😶' };
+
+function renderBotResponse(data) {
+  const mood = data.mood_data || {};
+  const rec = data.recommendations || {};
+  const moodEmoji = moodEmojis[mood.mood] || '💙';
+
+  let activitiesHtml = '';
+  if (rec.activities) {
+    activitiesHtml = `<div class="activities-grid">` +
+      rec.activities.map(a => `
+        <div class="activity-card">
+          <div class="emoji">${a.emoji || '✨'}</div>
+          <h4>${a.title}</h4>
+          <p>${a.description}</p>
+          <div class="duration">⏱ ${a.duration}</div>
+        </div>`).join('') + `</div>`;
+  }
+
+  const html = `<div class="msg-bubble">
+    <div class="mood-badge">${moodEmoji} ${mood.mood || 'understood'} · ${mood.intensity || ''}</div>
+    <p style="margin-top:0.7rem">${rec.response || 'I hear you.'}</p>
+    ${activitiesHtml}
+    ${rec.affirmation ? `<div class="affirmation">💜 "${rec.affirmation}"</div>` : ''}
+    ${rec.journal_prompt ? `<div class="journal-prompt"><span>📝 Journal prompt:</span> ${rec.journal_prompt}</div>` : ''}
+  </div>`;
+
+  appendMessage('bot', html);
+}
+
+function updateHistory(data) {
+  const mood = data.mood_data || {};
+  const list = document.getElementById('historyList');
+  const colorMap = { happy:'#f59e0b', sad:'#6366f1', anxious:'#ef4444', stressed:'#f97316', calm:'#10b981', neutral:'#94a3b8' };
+  const div = document.createElement('div');
+  div.className = 'history-item';
+  div.innerHTML = `<div class="history-mood-dot" style="background:${colorMap[mood.mood]||'#94a3b8'}"></div><span>${moodEmojis[mood.mood]||'💙'} ${mood.mood||'noted'}</span><span style="margin-left:auto;font-size:0.7rem;color:var(--text-muted)">${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>`;
+  if (list.children.length === 1 && list.children[0].tagName === 'DIV' && !list.children[0].className) list.innerHTML = '';
+  list.prepend(div);
+}
+
+async function analyzeJournal() {
+  const entry = document.getElementById('journalInput').value.trim();
+  if (!entry) return alert('Please write something first!');
+
+  const btn = document.querySelector('.journal-submit');
+  btn.textContent = '⏳ Analyzing...'; btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/journal', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ entry, session_id: SESSION_ID })
+    });
+    const data = await res.json();
+    const a = data.analysis || {};
+
+    const html = `
+      <h3 style="margin-bottom:1rem">📊 Journal Analysis</h3>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem">${a.response || ''}</p>
+
+      <div style="margin-bottom:1rem">
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:0.4rem">Emotional Themes</div>
+        ${(a.emotional_themes||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+      </div>
+
+      <div style="margin-bottom:1rem">
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:0.4rem">💪 Strengths Shown</div>
+        ${(a.strengths_shown||[]).map(s=>`<div style="display:flex;gap:0.4rem;align-items:flex-start;margin-bottom:0.3rem;font-size:0.85rem"><span style="color:var(--green)">✓</span>${s}</div>`).join('')}
+      </div>
+
+      <div style="margin-bottom:1rem">
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:0.6rem">📝 Next Journal Prompts</div>
+        ${(a.next_journal_prompts||[]).map(p=>`<div class="journal-prompt" style="margin-bottom:0.4rem">${p}</div>`).join('')}
+      </div>
+
+      ${a.professional_note ? `<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:0.75rem;font-size:0.82rem;color:#fca5a5;margin-top:0.5rem">💙 ${a.professional_note}</div>` : ''}
+    `;
+
+    const result = document.getElementById('journalResult');
+    result.innerHTML = html; result.style.display = 'block';
+  } catch(e) {
+    alert('Analysis failed. Please try again.');
+  }
+
+  btn.textContent = '🔍 Analyze My Entry'; btn.disabled = false;
+}
+
+async function loadInsights() {
+  const content = document.getElementById('insightsContent');
+  content.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted)">⏳ Generating insights...</div>';
+
+  try {
+    const res = await fetch(`/api/insights/${SESSION_ID}`);
+    const data = await res.json();
+    const score = data.wellbeing_score || 0;
+
+    content.innerHTML = `
+      <div class="wellbeing-card">
+        <h3>Wellbeing Score</h3>
+        <div class="score-circle" style="--score:${score}"><span class="score-value">${score}</span></div>
+        <p style="color:var(--text-muted);font-size:0.85rem">Based on ${score > 0 ? 'your mood history' : 'no data yet'}</p>
+      </div>
+
+      <div class="insight-card">
+        <h4>📋 Summary</h4>
+        <p>${data.summary || 'Start chatting to generate your summary.'}</p>
+      </div>
+
+      ${data.patterns && data.patterns.length ? `<div class="insight-card">
+        <h4>🔍 Patterns Detected</h4>
+        ${data.patterns.map(p=>`<p style="margin-bottom:0.4rem">• ${p}</p>`).join('')}
+      </div>` : ''}
+
+      ${data.positive_highlight ? `<div class="insight-card" style="border-color:rgba(16,185,129,0.3)">
+        <h4>🌟 Positive Highlight</h4>
+        <p>${data.positive_highlight}</p>
+      </div>` : ''}
+
+      ${data.gentle_suggestion ? `<div class="insight-card" style="border-color:rgba(124,58,237,0.3)">
+        <h4>💡 Suggestion for This Week</h4>
+        <p>${data.gentle_suggestion}</p>
+      </div>` : ''}
+    `;
+  } catch(e) {
+    content.innerHTML = '<div style="padding:1rem;color:var(--text-muted)">Could not load insights. Please try again.</div>';
+  }
+}
+</script>
+</body>
+</html>
